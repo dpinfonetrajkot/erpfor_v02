@@ -1,0 +1,29 @@
+node_modules/
+dist/
+dist-test/
+dist-demo/
+.next/
+.next-*/
+out/
+coverage/
+*.tsbuildinfo
+
+# env files (keep the examples)
+.env
+.env.*
+!.env.example
+
+# generated prisma client
+apps/api/src/generated/
+
+# uploaded files
+apps/api/storage/
+apps/api/storage-test/
+apps/api/storage-demo/
+
+# legacy dump used by the import script
+legacy/
+
+.DS_Store
+Thumbs.db
+*.log

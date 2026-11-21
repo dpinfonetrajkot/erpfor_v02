@@ -1,0 +1,40 @@
+# Local development database.
+# Start with: pnpm db:up
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: erpforsell-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_dev_password}
+      MYSQL_DATABASE: erpforsell
+      MYSQL_USER: erp
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-erp_dev_password}
+      TZ: Asia/Kolkata
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+00:00
+    ports:
+      - '3307:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-uroot', '-p${MYSQL_ROOT_PASSWORD:-root_dev_password}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # Catches every e-mail the ERP sends in development (nothing reaches real suppliers).
+  # Inbox: http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.31.4
+    container_name: erpforsell-mailpit
+    restart: unless-stopped
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+
+volumes:
+  mysql_data:

@@ -1,0 +1,30 @@
+{
+  "name": "erpforsell-v2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Manufacturing ERP - Next.js + NestJS + MySQL",
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node scripts/dev-ports.mjs && pnpm --filter @bht/shared build && pnpm -r --parallel --filter @bht/shared --filter @bht/api --filter @bht/web dev",
+    "dev:stop": "node scripts/dev-ports.mjs",
+    "build": "pnpm --filter @bht/shared build && pnpm --filter @bht/api build && pnpm --filter @bht/web build",
+    "build:api": "npm --prefix packages/shared run build && npm --prefix apps/api run build",
+    "build:web": "npm --prefix packages/shared run build && npm --prefix apps/web run build -- --webpack && node apps/web/scripts/prepare-standalone.mjs",
+    "typecheck": "pnpm -r typecheck",
+    "db:up": "docker compose up -d mysql mailpit",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @bht/api db:migrate",
+    "db:seed": "pnpm --filter @bht/api db:seed",
+    "db:reset": "pnpm --filter @bht/api db:reset",
+    "db:studio": "pnpm --filter @bht/api db:studio",
+    "import:legacy": "pnpm --filter @bht/api import:legacy",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md,css}\""
+  },
+  "devDependencies": {
+    "prettier": "3.9.10",
+    "typescript": "5.9.3"
+  }
+}

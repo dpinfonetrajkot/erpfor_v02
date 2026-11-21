@@ -1,0 +1,388 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * ERP design tokens - "soft glass" look:
+ * a soft blue-grey gradient page, see-through white panels (glass) with a white edge and a soft shadow,
+ * big round corners, dark "ink" pills for main actions, a calm periwinkle blue for links and highlights,
+ * coral for things that are late. Chart colours are a validated pair (light and dark steps).
+ */
+:root {
+  --radius: 0.875rem;
+
+  --canvas-1: #e8ecf4;
+  --canvas-2: #dfe5ef;
+  --canvas-3: #e9e6f1;
+  --background: #e6eaf2;
+  --foreground: #1d2230;
+  --card: rgb(255 255 255 / 0.72);
+  --card-foreground: #1d2230;
+  --popover: #ffffff;
+  --popover-foreground: #1d2230;
+  --primary: #4062c9;
+  --primary-foreground: #ffffff;
+  /* main buttons and the chosen menu pill */
+  --ink: #16181d;
+  --ink-foreground: #ffffff;
+  --secondary: #eef1f7;
+  --secondary-foreground: #1d2230;
+  --muted: #eef1f7;
+  --muted-foreground: #5d6475;
+  --accent: #e4eafb;
+  --accent-foreground: #2f4c9a;
+  --destructive: #c9343f;
+  --destructive-foreground: #ffffff;
+  --success: #15803d;
+  --warning: #b7791f;
+  --info: #4062c9;
+  /* chart series (validated: light surface, colour-blind safe) */
+  --chart-1: #5b7ddb;
+  --chart-2: #f0858b;
+  /* money owed by age, light -> dark = not due -> over 90 days (one-hue ramp, validated) */
+  --age-1: #86b6ef;
+  --age-2: #5598e7;
+  --age-3: #2a78d6;
+  --age-4: #1c5cab;
+  --age-5: #104281;
+  --border: #e1e6ef;
+  --input: #d3d9e5;
+  --ring: #4062c9;
+  /* the white edge and soft shadow of a glass panel */
+  --glass-border: rgb(255 255 255 / 0.9);
+  --glass-shadow: 0 1px 2px rgb(30 41 80 / 0.04), 0 14px 40px rgb(40 52 90 / 0.07);
+
+  --sidebar: rgb(255 255 255 / 0.6);
+  --sidebar-foreground: #2c3140;
+  --sidebar-muted: #5d6475;
+  --sidebar-accent: rgb(255 255 255 / 0.75);
+  --sidebar-accent-foreground: #1d2230;
+  --sidebar-border: rgb(255 255 255 / 0.9);
+  --sidebar-primary: #4062c9;
+}
+
+.dark {
+  --canvas-1: #0e1117;
+  --canvas-2: #131823;
+  --canvas-3: #17141f;
+  --background: #10141c;
+  --foreground: #e8ebf1;
+  --card: rgb(30 35 46 / 0.72);
+  --card-foreground: #e8ebf1;
+  --popover: #1b202b;
+  --popover-foreground: #e8ebf1;
+  --primary: #8aa4ef;
+  --primary-foreground: #0d1326;
+  --ink: #eef1f6;
+  --ink-foreground: #12151c;
+  --secondary: #252b38;
+  --secondary-foreground: #e8ebf1;
+  --muted: #222836;
+  --muted-foreground: #a3abbb;
+  --accent: #26304a;
+  --accent-foreground: #c3d1fa;
+  --destructive: #f08a90;
+  --destructive-foreground: #2a0a0d;
+  --success: #4ade80;
+  --warning: #f0b44c;
+  --info: #8aa4ef;
+  --chart-1: #6483dd;
+  --chart-2: #df6a72;
+  /* on the dark card the older debt is the lighter (louder) step */
+  --age-1: #1c5cab;
+  --age-2: #2a78d6;
+  --age-3: #5598e7;
+  --age-4: #86b6ef;
+  --age-5: #b7d3f6;
+  --border: #2b3240;
+  --input: #384050;
+  --ring: #8aa4ef;
+  --glass-border: rgb(255 255 255 / 0.08);
+  --glass-shadow: 0 14px 40px rgb(0 0 0 / 0.35);
+
+  --sidebar: rgb(30 35 46 / 0.6);
+  --sidebar-foreground: #d6dbe5;
+  --sidebar-muted: #a3abbb;
+  --sidebar-accent: rgb(255 255 255 / 0.06);
+  --sidebar-accent-foreground: #f3f5f9;
+  --sidebar-border: rgb(255 255 255 / 0.08);
+  --sidebar-primary: #8aa4ef;
+}
+
+/*
+ * Personal look (Settings → Appearance), set as attributes on <html>:
+ * data-font = typeface, data-accent = main colour (light and dark steps), data-size = interface size.
+ * Blue + Plus Jakarta Sans + default size need no attribute. Chart colours never change (validated palette).
+ */
+:root {
+  --font-app: var(--font-jakarta);
+}
+:root[data-font='inter'] { --font-app: var(--font-inter); }
+:root[data-font='geist'] { --font-app: var(--font-geist); }
+:root[data-font='jakarta'] { --font-app: var(--font-jakarta); }
+:root[data-font='manrope'] { --font-app: var(--font-manrope); }
+:root[data-font='plex'] { --font-app: var(--font-plex); }
+:root[data-font='dm'] { --font-app: var(--font-dm); }
+:root[data-font='nunito'] { --font-app: var(--font-nunito); }
+:root[data-font='poppins'] { --font-app: var(--font-poppins); }
+:root[data-font='system'] { --font-app: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif; }
+
+:root[data-size='sm'] { zoom: 0.92; }
+:root[data-size='lg'] { zoom: 1.08; }
+
+:root[data-accent='indigo'] {
+  --primary: #4f46e5;
+  --ring: #4f46e5;
+  --accent: #eef2ff;
+  --accent-foreground: #4338ca;
+  --sidebar-primary: #4f46e5;
+}
+:root.dark[data-accent='indigo'] {
+  --primary: #818cf8;
+  --primary-foreground: #14123a;
+  --ring: #818cf8;
+  --accent: color-mix(in oklch, #818cf8 18%, var(--card));
+  --accent-foreground: #c7d2fe;
+  --sidebar-primary: #818cf8;
+}
+
+:root[data-accent='teal'] {
+  --primary: #0f766e;
+  --ring: #0f766e;
+  --accent: #f0fdfa;
+  --accent-foreground: #0f766e;
+  --sidebar-primary: #0f766e;
+}
+:root.dark[data-accent='teal'] {
+  --primary: #2dd4bf;
+  --primary-foreground: #042f2e;
+  --ring: #2dd4bf;
+  --accent: color-mix(in oklch, #2dd4bf 18%, var(--card));
+  --accent-foreground: #99f6e4;
+  --sidebar-primary: #2dd4bf;
+}
+
+:root[data-accent='emerald'] {
+  --primary: #047857;
+  --ring: #047857;
+  --accent: #ecfdf5;
+  --accent-foreground: #047857;
+  --sidebar-primary: #047857;
+}
+:root.dark[data-accent='emerald'] {
+  --primary: #34d399;
+  --primary-foreground: #022c22;
+  --ring: #34d399;
+  --accent: color-mix(in oklch, #34d399 18%, var(--card));
+  --accent-foreground: #a7f3d0;
+  --sidebar-primary: #34d399;
+}
+
+:root[data-accent='violet'] {
+  --primary: #7c3aed;
+  --ring: #7c3aed;
+  --accent: #f5f3ff;
+  --accent-foreground: #6d28d9;
+  --sidebar-primary: #7c3aed;
+}
+:root.dark[data-accent='violet'] {
+  --primary: #a78bfa;
+  --primary-foreground: #1e1033;
+  --ring: #a78bfa;
+  --accent: color-mix(in oklch, #a78bfa 18%, var(--card));
+  --accent-foreground: #ddd6fe;
+  --sidebar-primary: #a78bfa;
+}
+
+:root[data-accent='rose'] {
+  --primary: #be123c;
+  --ring: #be123c;
+  --accent: #fff1f2;
+  --accent-foreground: #be123c;
+  --sidebar-primary: #be123c;
+}
+:root.dark[data-accent='rose'] {
+  --primary: #fb7185;
+  --primary-foreground: #2a0a12;
+  --ring: #fb7185;
+  --accent: color-mix(in oklch, #fb7185 18%, var(--card));
+  --accent-foreground: #fecdd3;
+  --sidebar-primary: #fb7185;
+}
+
+:root[data-accent='orange'] {
+  --primary: #c2410c;
+  --ring: #c2410c;
+  --accent: #fff7ed;
+  --accent-foreground: #c2410c;
+  --sidebar-primary: #c2410c;
+}
+:root.dark[data-accent='orange'] {
+  --primary: #fb923c;
+  --primary-foreground: #2a1306;
+  --ring: #fb923c;
+  --accent: color-mix(in oklch, #fb923c 18%, var(--card));
+  --accent-foreground: #fed7aa;
+  --sidebar-primary: #fb923c;
+}
+
+:root[data-accent='graphite'] {
+  --primary: #334155;
+  --ring: #334155;
+  --accent: #f1f5f9;
+  --accent-foreground: #334155;
+  --sidebar-primary: #334155;
+}
+:root.dark[data-accent='graphite'] {
+  --primary: #cbd5e1;
+  --primary-foreground: #0f172a;
+  --ring: #cbd5e1;
+  --accent: color-mix(in oklch, #cbd5e1 18%, var(--card));
+  --accent-foreground: #e2e8f0;
+  --sidebar-primary: #cbd5e1;
+}
+
+@theme inline {
+  --font-sans: var(--font-app), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 6px);
+  --radius-3xl: calc(var(--radius) + 10px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
+  --color-glass-border: var(--glass-border);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-primary: var(--sidebar-primary);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply text-foreground antialiased;
+    background-color: var(--background);
+    background-image: linear-gradient(140deg, var(--canvas-1) 0%, var(--canvas-2) 52%, var(--canvas-3) 100%);
+    background-attachment: fixed;
+    min-height: 100dvh;
+  }
+  /* Numbers line up in tables and KPI tiles */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* A glass panel: see-through white, white edge, soft shadow, blur behind. */
+@utility glass {
+  background-color: var(--card);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
+/* Round white icon buttons in the top bar (the Ask ERP, calculator, chat, bell and theme launchers). */
+.toolbar-round [data-slot='button'][data-variant='ghost'][data-size^='icon'] {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background-color: var(--card);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+.toolbar-round [data-slot='button'][data-variant='outline'] {
+  height: 2.5rem;
+  border-radius: 9999px;
+  padding-inline: 1rem;
+  border-color: var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+/* ---------------------------------------------------------------- printing (reports and documents) */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm 10mm 12mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+    font-size: 12px;
+  }
+  /* keep chart and status colours on paper */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    box-shadow: none !important;
+  }
+  [data-slot='card'] {
+    border-color: #d4d4d8 !important;
+    border-radius: 6px;
+  }
+  /* tables: full page width, header row repeated on every page, rows not split */
+  table {
+    min-width: 0 !important;
+  }
+  thead {
+    display: table-header-group;
+  }
+  tfoot {
+    display: table-row-group;
+  }
+  tr {
+    break-inside: avoid;
+  }
+  .report-table th,
+  .report-table td {
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+  }
+  /* charts drawn for the screen width shrink to the paper width */
+  .chart-svg {
+    width: 100% !important;
+    height: auto !important;
+  }
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+}
