@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import type { ListQuery, UserCreateInput, UserUpdateInput } from '@bht/shared';
-import { AuditAction } from '../generated/prisma/client';
+import { passwordProblems, type ListQuery, type UserCreateInput, type UserUpdateInput } from '@bht/shared';
+import { AuditAction, Prisma } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../core/audit.service';
 import { listArgs, paginated } from '../common/list';
@@ -21,7 +21,17 @@ const userSelect = {
   lastLoginAt: true,
   lastSeenAt: true,
   createdAt: true,
+  // login safety, shown as badges in Admin → Users (never the 2-step secret itself)
+  mustChangePassword: true,
+  lockedUntil: true,
+  twoFactorEnabledAt: true,
 } as const;
+
+/** The company password rules, with this user's username; field error on `field`. */
+function assertPasswordRules(password: string, username: string, field: string) {
+  const problem = passwordProblems(password, { username })[0];
+  if (problem) throw new BadRequestException({ message: `Password needs: ${problem.label}`, errors: { [field]: `Password needs: ${problem.label}` } });
+}
 
 @Injectable()
 export class UsersService {
@@ -49,16 +59,17 @@ export class UsersService {
   }
 
   async create(input: UserCreateInput, actor: Actor) {
-    const { password, ...rest } = input;
+    const { password, mustChangePassword, ...rest } = input;
+    assertPasswordRules(password, rest.username, 'password');
     const user = await this.prisma.user.create({
-      data: { ...normalize(rest), passwordHash: await hashPassword(password) },
+      data: { ...normalize(rest), passwordHash: await hashPassword(password), mustChangePassword },
       select: userSelect,
     });
     await this.audit.log(actor, {
       action: AuditAction.CREATE,
       entity: 'user',
       entityId: user.id,
-      summary: `Created user ${user.username} (${user.role.name})`,
+      summary: `Created user ${user.username} (${user.role.name})${mustChangePassword ? ', must choose own password' : ''}`,
     });
     return user;
   }
@@ -86,18 +97,44 @@ export class UsersService {
     return user;
   }
 
-  async resetPassword(id: number, newPassword: string, actor: Actor) {
+  /** New password from the admin; also unlocks the account. */
+  async resetPassword(id: number, newPassword: string, mustChangePassword: boolean, actor: Actor) {
     const user = await this.get(id);
+    assertPasswordRules(newPassword, user.username, 'newPassword');
     await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id }, data: { passwordHash: await hashPassword(newPassword) } }),
+      this.prisma.user.update({
+        where: { id },
+        data: { passwordHash: await hashPassword(newPassword), mustChangePassword, failedLogins: 0, lockedUntil: null, passwordChangedAt: new Date() },
+      }),
       this.prisma.session.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: new Date() } }),
     ]);
     await this.audit.log(actor, {
       action: AuditAction.PASSWORD_CHANGE,
       entity: 'user',
       entityId: id,
-      summary: `Reset password of ${user.username}`,
+      summary: `Reset password of ${user.username}${mustChangePassword ? ' (must choose own password)' : ''}`,
     });
+  }
+
+  /** Unlocks an account locked after too many wrong passwords or codes. */
+  async unlock(id: number, actor: Actor) {
+    const user = await this.get(id);
+    await this.prisma.user.update({ where: { id }, data: { failedLogins: 0, lockedUntil: null } });
+    await this.audit.log(actor, { action: AuditAction.STATUS_CHANGE, entity: 'user', entityId: id, summary: `Unlocked ${user.username}` });
+    return this.get(id);
+  }
+
+  /** Turns off 2-step login for someone who lost the phone; they sign in with the password and can set it up again. */
+  async resetTwoFactor(id: number, actor: Actor) {
+    const user = await this.get(id);
+    if (id === actor.userId) throw new BadRequestException('Use Settings → Account & security to change your own 2-step login.');
+    if (!user.twoFactorEnabledAt) throw new BadRequestException(`2-step login is not on for ${user.username}.`);
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id }, data: { twoFactorSecret: null, twoFactorEnabledAt: null, twoFactorRecovery: Prisma.DbNull } }),
+      this.prisma.session.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: new Date() } }),
+    ]);
+    await this.audit.log(actor, { action: AuditAction.UPDATE, entity: 'user', entityId: id, summary: `Turned off 2-step login of ${user.username}` });
+    return this.get(id);
   }
 
   async remove(id: number, actor: Actor) {

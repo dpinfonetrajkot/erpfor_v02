@@ -1,14 +1,34 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { createHash, randomBytes } from 'node:crypto';
-import { companyAppearanceSchema, DEFAULT_APPEARANCE, userPreferencesSchema, type ChangePasswordInput, type CompanyAppearance, type SessionUser, type UserPreferences } from '@bht/shared';
+import {
+  companyAppearanceSchema,
+  DEFAULT_APPEARANCE,
+  isAdminUser,
+  passwordProblems,
+  userPreferencesSchema,
+  type ChangePasswordInput,
+  type CompanyAppearance,
+  type SessionUser,
+  type TwoFactorChallenge,
+  type TwoFactorPolicy,
+  type UserPreferences,
+} from '@bht/shared';
 import { AuditAction } from '../generated/prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../core/audit.service';
 import type { Env } from '../config/env';
 import type { Actor } from '../common/auth-user';
 import { hashPassword, verifyPassword } from './password';
+import { LOCK_MINUTES, SecurityService } from './security.service';
+
+/** What the 2-step sign-in pass (ticket) carries; never accepted as a session token. */
+interface TicketPayload {
+  sub: number;
+  purpose?: string;
+}
+const TICKET_SECONDS = 300;
 
 export interface IssuedTokens {
   accessToken: string;
@@ -36,10 +56,20 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly config: ConfigService<Env, true>,
     private readonly audit: AuditService,
+    private readonly security: SecurityService,
   ) {}
 
-  async login(username: string, password: string, client: ClientInfo) {
+  /**
+   * Step 1 of sign-in. With 2-step login on, the password only earns a short pass (ticket) for
+   * POST /auth/login/verify; otherwise the session starts here.
+   */
+  async login(
+    username: string,
+    password: string,
+    client: ClientInfo,
+  ): Promise<{ tokens: IssuedTokens; user: SessionUser } | { challenge: TwoFactorChallenge }> {
     const user = await this.prisma.user.findUnique({ where: { username }, include: userWithRole });
+    if (user) this.security.assertNotLocked(user);
     const ok = user ? await verifyPassword(password, user.passwordHash) : false;
 
     if (!user || !ok) {
@@ -49,19 +79,56 @@ export class AuthService {
         entityId: user?.id,
         summary: `Failed login for "${username}"`,
       });
+      if (user && (await this.security.recordFailure(user, client.ip))) {
+        throw new ForbiddenException(`Too many wrong tries. This account is now locked for ${LOCK_MINUTES} minutes, or until an admin unlocks it.`);
+      }
       throw new UnauthorizedException('Wrong username or password');
     }
     if (!user.isActive) throw new ForbiddenException('Your account is disabled. Contact the admin.');
 
+    if (user.twoFactorEnabledAt) {
+      const ticket = await this.jwt.signAsync({ sub: user.id, purpose: '2fa' } satisfies TicketPayload, { expiresIn: TICKET_SECONDS });
+      return { challenge: { twoFactor: true, ticket } };
+    }
+    return this.startSession(user, client, `${user.username} logged in`);
+  }
+
+  /** Step 2 of sign-in: the code from the authenticator app, or a backup code. */
+  async verifyLogin(ticket: string, code: string, client: ClientInfo) {
+    let payload: TicketPayload;
+    try {
+      payload = await this.jwt.verifyAsync<TicketPayload>(ticket);
+    } catch {
+      throw new UnauthorizedException('The sign-in took too long. Please enter your password again.');
+    }
+    if (payload.purpose !== '2fa') throw new UnauthorizedException('Please enter your password again.');
+    const user = await this.prisma.user.findUnique({ where: { id: payload.sub }, include: userWithRole });
+    if (!user || !user.isActive || !user.twoFactorEnabledAt) throw new UnauthorizedException('Please enter your password again.');
+    this.security.assertNotLocked(user);
+
+    const check = this.security.checkCode(user, code);
+    if (!check.ok) {
+      await this.audit.log({ userId: user.id, ip: client.ip }, {
+        action: AuditAction.LOGIN_FAILED,
+        entity: 'user',
+        entityId: user.id,
+        summary: `Wrong 2-step code for "${user.username}"`,
+      });
+      if (await this.security.recordFailure(user, client.ip)) {
+        throw new ForbiddenException(`Too many wrong tries. This account is now locked for ${LOCK_MINUTES} minutes, or until an admin unlocks it.`);
+      }
+      throw new BadRequestException({ message: 'That code is not right. Use the newest code from the app, or a backup code.', errors: { code: 'Wrong code' } });
+    }
+    if (check.backupLeft) await this.prisma.user.update({ where: { id: user.id }, data: { twoFactorRecovery: check.backupLeft } });
+    const how = check.backupLeft ? `with a backup code (${check.backupLeft.length} left)` : 'with 2-step login';
+    return this.startSession(user, client, `${user.username} logged in ${how}`);
+  }
+
+  private async startSession(user: UserWithRole, client: ClientInfo, summary: string) {
     const tokens = await this.createSession(user.id, user.roleId, client);
-    await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-    await this.audit.log({ userId: user.id, ip: client.ip }, {
-      action: AuditAction.LOGIN,
-      entity: 'user',
-      entityId: user.id,
-      summary: `${user.username} logged in`,
-    });
-    return { tokens, user: toSessionUser(user, await this.appearance()) };
+    await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date(), failedLogins: 0, lockedUntil: null } });
+    await this.audit.log({ userId: user.id, ip: client.ip }, { action: AuditAction.LOGIN, entity: 'user', entityId: user.id, summary });
+    return { tokens, user: toSessionUser(user, await this.appearance(), await this.security.policy()) };
   }
 
   /** Swaps a valid refresh token for a new pair (rotation). */
@@ -101,7 +168,7 @@ export class AuthService {
 
   async me(userId: number): Promise<SessionUser> {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, include: userWithRole });
-    return toSessionUser(user, await this.appearance());
+    return toSessionUser(user, await this.appearance(), await this.security.policy());
   }
 
   /** The company's default font and colour (Settings → Company look), or the built-in ones. */
@@ -136,10 +203,16 @@ export class AuthService {
         errors: { currentPassword: 'Current password is wrong' },
       });
     }
+    const problem = passwordProblems(input.newPassword, { username: user.username })[0];
+    if (problem) throw new BadRequestException({ message: `Password needs: ${problem.label}`, errors: { newPassword: `Password needs: ${problem.label}` } });
+    if (await verifyPassword(input.newPassword, user.passwordHash)) {
+      const msg = 'Choose a password different from the current one';
+      throw new BadRequestException({ message: msg, errors: { newPassword: msg } });
+    }
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: userId },
-        data: { passwordHash: await hashPassword(input.newPassword) },
+        data: { passwordHash: await hashPassword(input.newPassword), mustChangePassword: false, passwordChangedAt: new Date(), failedLogins: 0 },
       }),
       // Sign out every other device.
       this.prisma.session.updateMany({
@@ -182,27 +255,36 @@ function readPreferences(raw: unknown): UserPreferences {
   return parsed.success ? parsed.data : {};
 }
 
-function toSessionUser(
-  user: {
-    id: number;
-    username: string;
-    name: string;
-    email: string | null;
-    preferences: unknown;
-    avatar: string | null;
-    role: { id: number; name: string; permissions: { permission: string }[] };
-  },
-  appearance: CompanyAppearance,
-): SessionUser {
+interface UserWithRole {
+  id: number;
+  username: string;
+  name: string;
+  email: string | null;
+  roleId: number;
+  preferences: unknown;
+  avatar: string | null;
+  mustChangePassword: boolean;
+  twoFactorEnabledAt: Date | null;
+  role: { id: number; name: string; permissions: { permission: string }[] };
+}
+
+function toSessionUser(user: UserWithRole, appearance: CompanyAppearance, policy: TwoFactorPolicy): SessionUser {
+  const permissions = user.role.permissions.map((p) => p.permission);
+  const required = policy === 'everyone' || (policy === 'admins' && isAdminUser(permissions));
   return {
     id: user.id,
     username: user.username,
     name: user.name,
     email: user.email,
     role: { id: user.role.id, name: user.role.name },
-    permissions: user.role.permissions.map((p) => p.permission),
+    permissions,
     preferences: readPreferences(user.preferences),
     avatar: user.avatar,
     appearance,
+    security: {
+      twoFactorEnabled: !!user.twoFactorEnabledAt,
+      mustChangePassword: user.mustChangePassword,
+      twoFactorSetupRequired: required && !user.twoFactorEnabledAt,
+    },
   };
 }

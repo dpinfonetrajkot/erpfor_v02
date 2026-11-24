@@ -10,3 +10,9 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 
+# Security fixes for packages that come in through other packages (pnpm audit, 2026-11-23).
+# Remove a line once the parent package ships the fixed version itself.
+overrides:
+  'body-parser@>=2.0.0 <2.4.0': 2.4.0
+  'effect@>=3.0.0 <3.22.1': 3.22.4
+

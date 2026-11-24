@@ -8,6 +8,7 @@ import type { SessionUser } from '@bht/shared';
 import { api } from '@/lib/api';
 import { applyLook, effectiveLook } from '@/lib/appearance';
 import { AppShell } from '@/components/app/app-shell';
+import { AccountSetup } from '@/components/app/account-setup';
 import { SessionProvider } from '@/components/app/session';
 
 /** Everything behind login: loads the user once, then renders the app shell. */
@@ -33,12 +34,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  // An admin-set password or a missing 2-step login (company rule) is finished first; the server
+  // holds back the rest of the ERP until then.
+  const needsSetup = user.security?.mustChangePassword || user.security?.twoFactorSetupRequired;
+
   return (
     <SessionProvider user={user}>
       <LookSync user={user} />
-      <AppShell>
-        <Suspense>{children}</Suspense>
-      </AppShell>
+      {needsSetup ? (
+        <AccountSetup user={user} />
+      ) : (
+        <AppShell>
+          <Suspense>{children}</Suspense>
+        </AppShell>
+      )}
     </SessionProvider>
   );
 }

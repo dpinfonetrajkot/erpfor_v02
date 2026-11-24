@@ -10,12 +10,15 @@ import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 import { hasPermission } from '@bht/shared';
 import { PrismaService } from '../prisma/prisma.service';
-import { IS_PUBLIC_KEY, PERMISSIONS_KEY } from '../common/decorators';
+import { ALLOW_SETUP_KEY, IS_PUBLIC_KEY, PERMISSIONS_KEY } from '../common/decorators';
 import { ACCESS_COOKIE } from './cookies';
+import { SecurityService } from './security.service';
 
 interface AccessPayload {
   sub: number;
   sid: number;
+  /** Only set on the short 2-step sign-in pass, which is never a session. */
+  purpose?: string;
 }
 
 /** Only touch users.last_seen_at once a minute per user. */
@@ -27,7 +30,9 @@ const LAST_SEEN_INTERVAL_MS = 60_000;
  *  2. checks the access token and that its session is still active
  *  3. re-reads the user + role from the database, so disabling a user or
  *     changing a role takes effect immediately
- *  4. checks @RequirePermission(...)
+ *  4. holds back everything else while the user must still choose a new password or set up
+ *     2-step login (only @AllowDuringSetup() endpoints are open then)
+ *  5. checks @RequirePermission(...)
  */
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -35,6 +40,7 @@ export class AuthGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly jwt: JwtService,
     private readonly prisma: PrismaService,
+    private readonly security: SecurityService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -51,6 +57,7 @@ export class AuthGuard implements CanActivate {
     } catch {
       throw new UnauthorizedException('Session expired');
     }
+    if (payload.purpose || typeof payload.sid !== 'number') throw new UnauthorizedException('Please log in');
 
     const session = await this.prisma.session.findUnique({
       where: { id: payload.sid },
@@ -64,6 +71,8 @@ export class AuthGuard implements CanActivate {
             email: true,
             isActive: true,
             lastSeenAt: true,
+            mustChangePassword: true,
+            twoFactorEnabledAt: true,
             role: { select: { id: true, name: true, permissions: { select: { permission: true } } } },
           },
         },
@@ -91,6 +100,16 @@ export class AuthGuard implements CanActivate {
       void this.prisma.user
         .update({ where: { id: user.id }, data: { lastSeenAt: new Date() } })
         .catch(() => undefined);
+    }
+
+    if (!this.reflector.getAllAndOverride<boolean>(ALLOW_SETUP_KEY, targets)) {
+      const needs2fa = !user.twoFactorEnabledAt && this.security.requiredFor(await this.security.policy(), permissions);
+      if (user.mustChangePassword || needs2fa) {
+        throw new ForbiddenException({
+          message: user.mustChangePassword ? 'Please choose your own password first.' : 'Please set up 2-step login first.',
+          code: 'ACCOUNT_SETUP_REQUIRED',
+        });
+      }
     }
 
     const required = this.reflector.getAllAndOverride<string[] | undefined>(PERMISSIONS_KEY, targets);

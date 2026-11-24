@@ -3,11 +3,14 @@
 import { useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { z } from 'zod';
-import { KeyRound, Plus } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { KeyRound, Lock, LockOpen, Plus, ShieldCheck, ShieldOff } from 'lucide-react';
 import { resetPasswordSchema, userCreateSchema, userUpdateSchema, type ResetPasswordInput, type UserCreateInput, type UserUpdateInput } from '@bht/shared';
+import { api } from '@/lib/api';
 import { fromEntity, useZodForm } from '@/lib/forms';
 import { fmtAgo } from '@/lib/format';
-import { useDelete, useLookups, usePaged, useSave } from '@/hooks/use-api';
+import { showApiError, useDelete, useLookups, usePaged, useSave } from '@/hooks/use-api';
 import { useListParams } from '@/hooks/use-list-params';
 import type { User } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -20,9 +23,12 @@ import { PageHeader } from '@/components/app/page-header';
 import { ACTIVE_FILTER_OPTIONS, ActiveBadge, RowActions } from '@/components/app/row-actions';
 import { RequirePermission } from '@/components/app/no-access';
 import { useSession } from '@/components/app/session';
+import { PasswordChecklist } from '@/components/app/password-checklist';
 
 /** Seen within the last 2 minutes. */
 const isOnline = (u: User) => !!u.lastSeenAt && Date.now() - new Date(u.lastSeenAt).getTime() < 120_000;
+/** Locked right now after too many wrong passwords / codes. */
+const isLocked = (u: User) => !!u.lockedUntil && new Date(u.lockedUntil).getTime() > Date.now();
 
 export default function UsersPage() {
   return (
@@ -39,7 +45,21 @@ function Users() {
   const [editing, setEditing] = useState<User | 'new' | null>(null);
   const [resetting, setResetting] = useState<User | null>(null);
   const [deleting, setDeleting] = useState<User | null>(null);
+  const [resetting2fa, setResetting2fa] = useState<User | null>(null);
   const del = useDelete('/users', 'User', () => setDeleting(null));
+  const unlock = useMutation({
+    mutationFn: (u: User) => api(`/users/${u.id}/unlock`, { method: 'POST' }),
+    onSuccess: (_r, u) => toast.success(`${u.name} is unlocked`),
+    onError: (err) => showApiError(err),
+  });
+  const reset2fa = useMutation({
+    mutationFn: (u: User) => api(`/users/${u.id}/reset-2fa`, { method: 'POST' }),
+    onSuccess: (_r, u) => {
+      toast.success(`2-step login of ${u.name} is off. They can sign in with the password and set it up again.`);
+      setResetting2fa(null);
+    },
+    onError: (err) => showApiError(err),
+  });
 
   const columns = useMemo<ColumnDef<User>[]>(
     () => [
@@ -72,6 +92,30 @@ function Users() {
       },
       { header: 'Status', accessorKey: 'isActive', cell: ({ getValue }) => <ActiveBadge active={getValue<boolean>()} /> },
       {
+        header: 'Login safety',
+        id: 'security',
+        cell: ({ row }) => {
+          const u = row.original;
+          return (
+            <div className="flex flex-wrap gap-1">
+              {u.twoFactorEnabledAt ? (
+                <Badge variant="success">
+                  <ShieldCheck /> 2-step on
+                </Badge>
+              ) : (
+                <Badge variant="muted">2-step off</Badge>
+              )}
+              {isLocked(u) && (
+                <Badge variant="destructive">
+                  <Lock /> Locked
+                </Badge>
+              )}
+              {u.mustChangePassword && <Badge variant="warning">New password due</Badge>}
+            </div>
+          );
+        },
+      },
+      {
         id: 'actions',
         header: '',
         meta: { className: 'w-12' },
@@ -85,10 +129,21 @@ function Users() {
                 <KeyRound /> Reset password
               </DropdownMenuItem>
             )}
+            {can('users.update') && isLocked(row.original) && (
+              <DropdownMenuItem onSelect={() => unlock.mutate(row.original)}>
+                <LockOpen /> Unlock
+              </DropdownMenuItem>
+            )}
+            {can('users.update') && row.original.twoFactorEnabledAt && row.original.id !== me.id && (
+              <DropdownMenuItem onSelect={() => setResetting2fa(row.original)}>
+                <ShieldOff /> Turn off 2-step login
+              </DropdownMenuItem>
+            )}
           </RowActions>
         ),
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [can, me.id],
   );
 
@@ -125,6 +180,19 @@ function Users() {
         loading={del.isPending}
         onConfirm={() => deleting && del.mutate(deleting.id)}
       />
+      <ConfirmDialog
+        open={!!resetting2fa}
+        onOpenChange={(o) => !o && setResetting2fa(null)}
+        title="Turn off 2-step login?"
+        description={
+          <>
+            For a lost or changed phone. {resetting2fa?.name} is signed out everywhere, signs in again with the password only, and can then set up 2-step login on the new phone.
+          </>
+        }
+        confirmLabel="Turn off"
+        loading={reset2fa.isPending}
+        onConfirm={() => resetting2fa && reset2fa.mutate(resetting2fa)}
+      />
     </>
   );
 }
@@ -142,9 +210,10 @@ function UserSheet({ user, onClose }: { user: User | null; onClose: () => void }
 type RoleOptions = { value: number; label: string }[];
 
 function CreateUser({ roleOptions, onClose }: { roleOptions: RoleOptions; onClose: () => void }) {
-  const defaults: z.input<typeof userCreateSchema> = { username: '', name: '', email: '', phone: '', roleId: '' as unknown as number, isActive: true, password: '' };
+  const defaults: z.input<typeof userCreateSchema> = { username: '', name: '', email: '', phone: '', roleId: '' as unknown as number, isActive: true, password: '', mustChangePassword: true };
   const form = useZodForm(userCreateSchema, defaults);
   const save = useSave<UserCreateInput>({ path: '/users', form, label: 'User', onSaved: onClose });
+  const [password, username] = form.watch(['password', 'username']);
   return (
     <FormSheet open onOpenChange={(o) => !o && onClose()} title="New user" onSubmit={form.handleSubmit((v) => save.mutate(v))} saving={save.isPending}>
       <FormGrid>
@@ -153,8 +222,10 @@ function CreateUser({ roleOptions, onClose }: { roleOptions: RoleOptions; onClos
         <SelectField form={form} name="roleId" label="Role" required numeric placeholder="Select role" options={roleOptions} />
         <TextField form={form} name="phone" label="Phone" inputMode="tel" />
         <TextField form={form} name="email" label="Email" type="email" />
-        <TextField form={form} name="password" label="Password" type="password" required autoComplete="new-password" hint="8+ characters, a letter and a number" className="sm:col-span-2" />
+        <TextField form={form} name="password" label="Password" type="password" required autoComplete="new-password" className="sm:col-span-2" />
+        <PasswordChecklist password={password ?? ''} username={username} className="sm:col-span-2" />
       </FormGrid>
+      <SwitchField form={form} name="mustChangePassword" label="Must choose own password at first sign-in" hint="Recommended: then only the user knows their password." />
       <SwitchField form={form} name="isActive" label="Can sign in" />
     </FormSheet>
   );
@@ -180,19 +251,22 @@ function EditUser({ user, roleOptions, onClose }: { user: User; roleOptions: Rol
 }
 
 function ResetPasswordDialog({ user, onClose }: { user: User; onClose: () => void }) {
-  const form = useZodForm(resetPasswordSchema, { newPassword: '' });
+  const form = useZodForm(resetPasswordSchema, { newPassword: '', mustChangePassword: true });
   const save = useSave<ResetPasswordInput>({ path: `/users/${user.id}/reset-password`, form, label: 'Password', successMessage: `Password of ${user.name} was reset`, onSaved: onClose });
+  const newPassword = form.watch('newPassword');
   return (
     <FormDialog
       open
       onOpenChange={(o) => !o && onClose()}
       title={`Reset password of ${user.name}`}
-      description="The user is signed out everywhere and must use the new password."
+      description="The user is signed out everywhere, the account is unlocked, and they sign in with the new password."
       onSubmit={form.handleSubmit((v) => save.mutate(v))}
       saving={save.isPending}
       submitLabel="Reset password"
     >
-      <TextField form={form} name="newPassword" label="New password" type="text" autoComplete="off" required hint="8+ characters, a letter and a number. Share it privately." />
+      <TextField form={form} name="newPassword" label="New password" type="text" autoComplete="off" required hint="Share it privately." />
+      <PasswordChecklist password={newPassword ?? ''} username={user.username} />
+      <SwitchField form={form} name="mustChangePassword" label="Must choose own password at next sign-in" />
     </FormDialog>
   );
 }

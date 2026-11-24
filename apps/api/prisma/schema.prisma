@@ -39,6 +39,17 @@ model User {
   preferences  Json?
   /// Profile photo as a small data URL (192 px JPEG), or null.
   avatar       String?   @db.MediumText
+  /// Wrong passwords / codes in a row; 5 locks the account for 15 minutes.
+  failedLogins       Int       @default(0) @map("failed_logins")
+  lockedUntil        DateTime? @map("locked_until")
+  /// An admin set the password: the user must choose their own at the next sign-in.
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  passwordChangedAt  DateTime? @map("password_changed_at")
+  /// 2-step login: the authenticator secret (encrypted); turned on when twoFactorEnabledAt is set.
+  twoFactorSecret    String?   @map("two_factor_secret") @db.VarChar(255)
+  twoFactorEnabledAt DateTime? @map("two_factor_enabled_at")
+  /// SHA-256 hashes of the unused backup codes.
+  twoFactorRecovery  Json?     @map("two_factor_recovery")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 

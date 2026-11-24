@@ -188,6 +188,12 @@ export interface User {
   lastLoginAt: string | null;
   lastSeenAt: string | null;
   createdAt: string;
+  /** An admin set the password; the user chooses their own at the next sign-in. */
+  mustChangePassword: boolean;
+  /** Locked after too many wrong passwords / codes until this time. */
+  lockedUntil: string | null;
+  /** 2-step login on since. */
+  twoFactorEnabledAt: string | null;
 }
 
 export interface Role {

@@ -28,6 +28,7 @@ import { PageHeader } from '@/components/app/page-header';
 import { useSession } from '@/components/app/session';
 import { NAV } from '@/components/app/nav';
 import { AVATAR_GRADIENT, AVATAR_ICON, UserAvatar } from '@/components/app/user-avatar';
+import { CompanySecurityCard, TwoFactorCard } from '@/components/app/two-factor';
 
 const SECTIONS = [
   { id: 'profile', label: 'Profile picture', icon: UserRound },
@@ -520,9 +521,9 @@ function CompanySection() {
 // ------------------------------------------------------------------ account
 
 function SecuritySection() {
-  const { user } = useSession();
+  const { user, can } = useSession();
   return (
-    <Section id="security" title="Account & security" description="Your login details." icon={KeyRound}>
+    <Section id="security" title="Account & security" description="Your login details, 2-step login and the company security rule." icon={KeyRound}>
       <dl className="grid gap-4 text-sm sm:grid-cols-3">
         <div>
           <dt className="text-xs text-muted-foreground">Name</dt>
@@ -547,6 +548,8 @@ function SecuritySection() {
         </span>
         <ChevronRight className="size-4 text-muted-foreground" />
       </Link>
+      <TwoFactorCard />
+      {can('settings.view') && <CompanySecurityCard />}
     </Section>
   );
 }

@@ -4,9 +4,16 @@ import type { Actor, AuthUser } from './auth-user';
 
 export const IS_PUBLIC_KEY = 'isPublic';
 export const PERMISSIONS_KEY = 'permissions';
+export const ALLOW_SETUP_KEY = 'allowDuringSetup';
 
 /** Endpoint needs no login (login, refresh, health). */
 export const Public = () => SetMetadata(IS_PUBLIC_KEY, true);
+
+/**
+ * Endpoint stays open while the user still has to choose a new password or set up 2-step login
+ * (everything else answers 403 ACCOUNT_SETUP_REQUIRED until that is done).
+ */
+export const AllowDuringSetup = () => SetMetadata(ALLOW_SETUP_KEY, true);
 
 /** User needs at least one of these permissions, e.g. @RequirePermission('customers.view'). */
 export const RequirePermission = (...permissions: string[]) =>

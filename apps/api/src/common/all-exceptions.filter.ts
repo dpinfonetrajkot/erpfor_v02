@@ -29,9 +29,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       const statusCode = exception.getStatus();
       const response = exception.getResponse();
       if (typeof response === 'string') return { statusCode, message: response };
-      const r = response as { message?: string | string[]; errors?: Record<string, string> };
+      const r = response as { message?: string | string[]; errors?: Record<string, string>; code?: string };
       const message = Array.isArray(r.message) ? r.message.join(', ') : (r.message ?? exception.message);
-      return { statusCode, message, ...(r.errors ? { errors: r.errors } : {}) };
+      // `code` lets the web app tell special cases apart (e.g. ACCOUNT_SETUP_REQUIRED)
+      return { statusCode, message, ...(r.errors ? { errors: r.errors } : {}), ...(r.code ? { code: r.code } : {}) };
     }
 
     if (exception instanceof Prisma.PrismaClientKnownRequestError) {

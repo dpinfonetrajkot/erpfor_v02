@@ -5,6 +5,9 @@ export const envSchema = z.object({
   PORT: z.coerce.number().int().default(4000),
   DATABASE_URL: z.string().min(1),
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
+  // Locks the 2-step login secrets in the database. Optional: without it a key is made from JWT_ACCESS_SECRET
+  // (then changing JWT_ACCESS_SECRET means everyone sets up 2-step login again). Set it once and keep it.
+  TWO_FACTOR_KEY: z.string().min(32, 'TWO_FACTOR_KEY must be at least 32 characters').optional(),
   ACCESS_TOKEN_TTL_MINUTES: z.coerce.number().int().positive().default(15),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(7),
   WEB_ORIGIN: z.string().default('http://localhost:3600'),

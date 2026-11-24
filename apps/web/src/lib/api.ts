@@ -25,7 +25,7 @@ interface RequestOptions {
 let refreshing: Promise<boolean> | null = null;
 
 /** Calls where a 401 must not trigger a token refresh (it would loop or make no sense). */
-const NO_REFRESH = ['/auth/login', '/auth/refresh', '/auth/logout'];
+const NO_REFRESH = ['/auth/login', '/auth/login/verify', '/auth/refresh', '/auth/logout'];
 
 /** One refresh at a time, even if many requests get 401 together. */
 function refreshSession(): Promise<boolean> {

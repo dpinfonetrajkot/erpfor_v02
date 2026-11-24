@@ -54,7 +54,19 @@ export class UsersController {
     @Body(new ZodValidationPipe(resetPasswordSchema)) body: ResetPasswordInput,
     @CurrentActor() actor: Actor,
   ) {
-    return this.users.resetPassword(id, body.newPassword, actor);
+    return this.users.resetPassword(id, body.newPassword, body.mustChangePassword, actor);
+  }
+
+  @Post(':id/unlock')
+  @RequirePermission('users.update')
+  unlock(@Param('id', ParseIntPipe) id: number, @CurrentActor() actor: Actor) {
+    return this.users.unlock(id, actor);
+  }
+
+  @Post(':id/reset-2fa')
+  @RequirePermission('users.update')
+  resetTwoFactor(@Param('id', ParseIntPipe) id: number, @CurrentActor() actor: Actor) {
+    return this.users.resetTwoFactor(id, actor);
   }
 
   @Delete(':id')
