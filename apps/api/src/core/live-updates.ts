@@ -5,8 +5,11 @@ import type { LiveEvent } from '@bht/shared';
 import { CurrentUser } from '../common/decorators';
 import type { AuthUser } from '../common/auth-user';
 
-/** Saves that are not ERP data (login, token refresh, Ask ERP, chat, notifications) - they send their own events. */
-const NOT_A_CHANGE = /^\/api\/(auth|assistant|chat|notifications)(\/|\?|$)/;
+/**
+ * Saves that are not ERP data (login, token refresh, Ask ERP, chat, notifications) - they send their own events -
+ * and the Excel import check, which only reads a file.
+ */
+const NOT_A_CHANGE = /^\/api\/((auth|assistant|chat|notifications)(\/|\?|$)|imports\/[\w-]+\/check(\?|$))/;
 /** A page reload drops the connection for a moment; only after this long is someone shown offline. */
 const OFFLINE_AFTER_MS = 8_000;
 

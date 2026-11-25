@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Building2, Camera, Check, ChevronRight, Image as ImageIcon, KeyRound, LayoutDashboard, Monitor, Moon, Palette, RotateCcw, Shapes, Sun, Trash2, Type, UserRound } from 'lucide-react';
+import { Building2, Camera, Check, ChevronRight, DatabaseBackup, Image as ImageIcon, KeyRound, LayoutDashboard, Monitor, Moon, Palette, RotateCcw, Shapes, Sun, Trash2, Type, UserRound } from 'lucide-react';
 import {
   AVATAR_COLORS,
   AVATAR_ICONS,
@@ -23,10 +23,12 @@ import { FONT_FAMILY } from '@/lib/appearance';
 import { usePreferences } from '@/hooks/use-preferences';
 import { Button } from '@/components/ui/button';
 import { NativeSelect } from '@/components/ui/input';
-import { Card, Label, Switch } from '@/components/ui/primitives';
+import { Label, Switch } from '@/components/ui/primitives';
 import { PageHeader } from '@/components/app/page-header';
+import { Row, Section } from '@/components/app/settings-section';
+import { BackupsSection } from '@/components/app/backups';
 import { useSession } from '@/components/app/session';
-import { NAV } from '@/components/app/nav';
+import { canOpen, NAV } from '@/components/app/nav';
 import { AVATAR_GRADIENT, AVATAR_ICON, UserAvatar } from '@/components/app/user-avatar';
 import { CompanySecurityCard, TwoFactorCard } from '@/components/app/two-factor';
 
@@ -36,6 +38,7 @@ const SECTIONS = [
   { id: 'workspace', label: 'Workspace', icon: LayoutDashboard },
   { id: 'company', label: 'Company look', icon: Building2, admin: true },
   { id: 'security', label: 'Account & security', icon: KeyRound },
+  { id: 'backups', label: 'Backups', icon: DatabaseBackup, admin: true },
 ];
 
 export default function SettingsPage() {
@@ -62,41 +65,10 @@ export default function SettingsPage() {
           <WorkspaceSection />
           {admin && <CompanySection />}
           <SecuritySection />
+          {admin && <BackupsSection />}
         </div>
       </div>
     </>
-  );
-}
-
-function Section({ id, title, description, icon: Icon, children, action }: { id: string; title: string; description: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode; action?: React.ReactNode }) {
-  return (
-    <Card id={id} className="scroll-mt-20">
-      <div className="flex items-start justify-between gap-4 border-b px-6 py-4">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-            <Icon className="size-[18px]" />
-          </span>
-          <div>
-            <h2 className="text-base font-semibold tracking-[-0.01em]">{title}</h2>
-            <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-          </div>
-        </div>
-        {action}
-      </div>
-      <div className="space-y-7 px-6 py-6">{children}</div>
-    </Card>
-  );
-}
-
-function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-3 md:grid-cols-[200px_minmax(0,1fr)] md:gap-6">
-      <div>
-        <div className="text-sm font-medium">{label}</div>
-        {hint && <p className="mt-0.5 text-xs leading-snug text-muted-foreground">{hint}</p>}
-      </div>
-      <div className="min-w-0">{children}</div>
-    </div>
   );
 }
 
@@ -421,7 +393,7 @@ function AppearanceSection() {
 function WorkspaceSection() {
   const { can } = useSession();
   const { preferences, save } = usePreferences();
-  const screens = NAV.flatMap((g) => g.items.filter((i) => can(i.permission)).map((i) => ({ ...i, group: g.label })));
+  const screens = NAV.flatMap((g) => g.items.filter((i) => canOpen(can, i)).map((i) => ({ ...i, group: g.label })));
   return (
     <Section id="workspace" title="Workspace" description="How the ERP opens and looks around the edges." icon={LayoutDashboard}>
       <Row label="Start page" hint="The screen you see after signing in.">

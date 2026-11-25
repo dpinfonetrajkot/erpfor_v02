@@ -90,6 +90,7 @@ export const MODULES = [
   { key: 'invoices', label: 'Invoices', category: 'Dispatch & Billing', actions: [...CRUD, 'approve'], phase: 6 },
   { key: 'dispatches', label: 'Dispatch', category: 'Dispatch & Billing', actions: CRUD, phase: 6 },
   { key: 'payments', label: 'Payments', category: 'Dispatch & Billing', actions: CRUD, phase: 6 },
+  { key: 'tally', label: 'Tally export (sales, purchases, payments)', category: 'Dispatch & Billing', actions: ['export'], phase: 11 },
 
   { key: 'traceability', label: 'Heat & Order Traceability', category: 'Reports', actions: ['view', 'export'], phase: 7 },
   { key: 'reports', label: 'Stock, Production & Order Reports', category: 'Reports', actions: ['view', 'export'], phase: 7 },
@@ -113,7 +114,7 @@ export const MODULES = [
 export type ModuleKey = (typeof MODULES)[number]['key'];
 
 /** Modules up to this phase have screens; later ones are shown as "coming". */
-export const DELIVERED_PHASE = 10;
+export const DELIVERED_PHASE = 11;
 
 /** Every valid permission string. */
 export const ALL_PERMISSIONS: string[] = MODULES.flatMap((m) =>

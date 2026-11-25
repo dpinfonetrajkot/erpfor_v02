@@ -6,6 +6,7 @@ import {
   CalendarDays,
   Contact,
   FileSearch,
+  FileSpreadsheet,
   FingerprintPattern,
   FireExtinguisher,
   HandCoins,
@@ -19,6 +20,7 @@ import {
   ClipboardList,
   Cog,
   Cpu,
+  FileOutput,
   FileSignature,
   FileText,
   PackagePlus,
@@ -46,16 +48,23 @@ import {
   Truck,
   Users,
 } from 'lucide-react';
-import { DELIVERED_PHASE, MODULES, type ModuleCategory } from '@bht/shared';
+import { DELIVERED_PHASE, IMPORT_TYPE_INFO, MODULES, type ModuleCategory } from '@bht/shared';
 
 export interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
-  /** Shown when the user has this permission. */
-  permission: string;
+  /** Shown when the user has this permission (or, for a list, any one of them). */
+  permission: string | readonly string[];
   keywords?: string;
 }
+
+/** May this user open the screen? */
+export const canOpen = (can: (permission: string) => boolean, item: Pick<NavItem, 'permission'>) =>
+  typeof item.permission === 'string' ? can(item.permission) : item.permission.some(can);
+
+/** Anyone who may import at least one kind of Excel file. */
+const IMPORT_PERMISSIONS = [...new Set(Object.values(IMPORT_TYPE_INFO).map((i) => i.permissions[0]))];
 
 export interface NavGroup {
   label: string;
@@ -98,6 +107,7 @@ export const NAV: NavGroup[] = [
       { label: 'Invoices', href: '/billing/invoices', icon: FileText, permission: 'invoices.view', keywords: 'tax invoice gst export bill' },
       { label: 'Dispatches', href: '/dispatch/dispatches', icon: Truck, permission: 'dispatches.view', keywords: 'transport lr vehicle challan packing list' },
       { label: 'Payments', href: '/billing/payments', icon: Banknote, permission: 'payments.view', keywords: 'receipt money outstanding due receivable payable' },
+      { label: 'Tally export', href: '/billing/tally', icon: FileOutput, permission: 'tally.export', keywords: 'tally xml accounts accountant export vouchers ledgers books' },
     ],
   },
   {
@@ -156,6 +166,7 @@ export const NAV: NavGroup[] = [
       { label: 'Heat Numbers', href: '/masters/heats', icon: Flame, permission: 'heats.view', keywords: 'heat mill mtc traceability' },
       { label: 'Process Stages', href: '/masters/process-stages', icon: Factory, permission: 'process_stages.view', keywords: 'route card forging machining pdi' },
       { label: 'Tools & Dies', href: '/masters/tools', icon: Hammer, permission: 'tools.view', keywords: 'die fixture gauge' },
+      { label: 'Import from Excel', href: '/masters/import', icon: FileSpreadsheet, permission: IMPORT_PERMISSIONS, keywords: 'excel xlsx csv upload template bulk opening stock import customers suppliers products raw material' },
     ],
   },
   {

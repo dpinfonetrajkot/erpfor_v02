@@ -21,6 +21,9 @@ import { HrModule } from './hr/hr.module';
 import { AssistantModule } from './assistant/assistant.module';
 import { CommunicationModule } from './communication/communication.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { BackupModule } from './backup/backup.module';
+import { TallyModule } from './tally/tally.module';
+import { ImportsModule } from './imports/imports.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { SerializeInterceptor } from './common/serialize.interceptor';
 
@@ -47,6 +50,9 @@ import { SerializeInterceptor } from './common/serialize.interceptor';
     AssistantModule,
     CommunicationModule,
     DashboardModule,
+    BackupModule,
+    TallyModule,
+    ImportsModule,
   ],
   providers: [
     // Throttler runs first so floods are stopped before any database work.

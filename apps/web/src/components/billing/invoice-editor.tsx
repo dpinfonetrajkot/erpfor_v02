@@ -932,8 +932,8 @@ export function InvoiceEditor({
       </Card>
 
       {/* ---------------- always visible: total, checks, actions */}
-      <div className="sticky bottom-0 z-20 -mx-4 border-t bg-background/90 backdrop-blur-md sm:-mx-6 lg:-mx-8">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6 lg:px-8">
+      <div className="sticky bottom-0 z-20 -mx-3 border-t bg-background/90 backdrop-blur-md sm:-mx-5 lg:-mx-6">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-3 py-3 sm:px-5 lg:px-6">
           <div className="flex items-baseline gap-2">
             <span className="text-xs text-muted-foreground">Total</span>
             <span className="text-lg font-semibold tracking-[-0.01em] tabular-nums">{fmtMoney(totals.grandTotal, cur)}</span>

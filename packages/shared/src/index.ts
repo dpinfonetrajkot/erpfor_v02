@@ -15,4 +15,6 @@ export * from './schemas/hr';
 export * from './schemas/assistant';
 export * from './schemas/preferences';
 export * from './schemas/communication';
+export * from './schemas/tally';
+export * from './schemas/imports';
 export * from './work-lists';

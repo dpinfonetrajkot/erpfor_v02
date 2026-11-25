@@ -24,7 +24,7 @@ const ACTION_BADGE: Record<string, 'success' | 'info' | 'destructive' | 'warning
   STATUS_CHANGE: 'secondary',
 };
 
-const ENTITIES = ['user', 'role', 'company', 'customer', 'supplier', 'product', 'item', 'raw_material', 'material_grade', 'heat', 'process_stage', 'tool', 'attachment', 'document_series'];
+const ENTITIES = ['user', 'role', 'company', 'customer', 'supplier', 'product', 'item', 'raw_material', 'material_grade', 'heat', 'process_stage', 'tool', 'attachment', 'document_series', 'backup', 'tally'];
 
 export default function AuditLogPage() {
   return (

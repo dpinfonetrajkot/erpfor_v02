@@ -197,7 +197,7 @@ function InvoiceDetail() {
           )}
         />
       ) : (
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
           <InvoicePaper inv={inv} balance={balance} />
           <aside className="space-y-4 xl:sticky xl:top-20">
             <PaymentPanel inv={inv} balance={balance} onPay={canPay ? () => setDialog('pay') : undefined} onCancelPayment={can('payments.update') ? setCancelPayment : undefined} />

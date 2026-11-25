@@ -337,8 +337,8 @@ export function PoEditor({
         </Card>
       </div>
 
-      <div className="sticky bottom-0 z-20 -mx-4 border-t bg-background/95 backdrop-blur sm:-mx-6">
-        <div className="flex flex-wrap items-center gap-2 px-4 py-3 sm:px-6">
+      <div className="sticky bottom-0 z-20 -mx-3 border-t bg-background/95 backdrop-blur sm:-mx-5 lg:-mx-6">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-3 sm:px-5 lg:px-6">
           <span className={cn('text-sm', form.formState.isDirty ? 'text-warning' : 'text-muted-foreground')}>
             {form.formState.isDirty ? 'Unsaved changes' : po ? 'Saved' : 'New draft'}
           </span>

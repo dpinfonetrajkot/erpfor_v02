@@ -14,6 +14,7 @@ import { ConfirmDialog } from '@/components/ui/overlays';
 import { DataTable, FilterSelect } from '@/components/app/data-table';
 import { FormSection, FormSheet, SelectField, TextareaField } from '@/components/app/form';
 import { PageHeader } from '@/components/app/page-header';
+import { ImportButton } from '@/components/app/import-button';
 import { PartyFields } from '@/components/app/party-fields';
 import { ACTIVE_FILTER_OPTIONS, ActiveBadge, RowActions } from '@/components/app/row-actions';
 import { RequirePermission } from '@/components/app/no-access';
@@ -89,11 +90,14 @@ function Customers() {
         title="Customers"
         description="Companies that send you purchase orders."
         actions={
-          can('customers.create') && (
-            <Button onClick={() => setEditing('new')}>
-              <Plus /> New customer
-            </Button>
-          )
+          <>
+            <ImportButton type="customers" />
+            {can('customers.create') && (
+              <Button onClick={() => setEditing('new')}>
+                <Plus /> New customer
+              </Button>
+            )}
+          </>
         }
       />
       <DataTable
@@ -160,6 +164,7 @@ function CustomerSheet({ customer, onClose }: { customer: Customer | null; onClo
       <PartyFields
         form={form}
         codeHint="Auto: CUS-0001, CUS-0002…"
+        duplicateCheck={{ path: '/customers', currentId: customer?.id, label: 'customer' }}
         extraTop={<SelectField form={form} name="currency" label="Currency" options={CURRENCIES.map((c) => ({ value: c, label: c }))} />}
         extraBottom={
           <FormSection title="Shipping">

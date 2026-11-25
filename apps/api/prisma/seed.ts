@@ -49,7 +49,7 @@ const ROLES: { name: string; description: string; permissions: string[] }[] = [
     'purchase_requisitions.view', 'goods_receipts.view', 'stock.view', 'job_work_orders.view', 'job_work_receipts.view',
     ...crud('purchase_orders', 'invoices', 'payments'), 'purchase_orders.approve', 'invoices.approve', 'reports.view',
     ...view('sales_orders', 'assemblies', 'dispatches'), 'reports.export', 'business_reports.view', 'business_reports.export', 'traceability.view',
-    'payroll.view', 'loans.view'] },
+    'payroll.view', 'loans.view', 'tally.export'] },
   { name: 'Design', description: 'Drawing / design approval of sales orders', permissions: [
     'dashboard.view', ...view('products', 'items', 'sales_orders'), 'products.update', 'items.update', 'so_design.approve'] },
   { name: 'Dispatch', description: 'Assembly, packing and dispatch', permissions: [

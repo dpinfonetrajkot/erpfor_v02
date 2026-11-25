@@ -47,7 +47,7 @@ function Chat() {
   }, [selected]);
 
   return (
-    <div className="-mx-4 -my-6 grid h-[calc(100dvh-3.5rem)] overflow-hidden border-b bg-card sm:mx-0 sm:my-0 sm:h-[calc(100dvh-6.5rem)] sm:rounded-lg sm:border md:grid-cols-[320px_1fr]">
+    <div className="-mx-3 -my-6 grid h-[calc(100dvh-3.5rem)] overflow-hidden border-b bg-card sm:mx-0 sm:my-0 sm:h-[calc(100dvh-6.5rem)] sm:rounded-lg sm:border md:grid-cols-[320px_1fr]">
       <aside className={cn('flex min-h-0 flex-col border-r', selected && 'hidden md:flex')} aria-label="Chats">
         <ConversationList rows={conversations.data} loading={conversations.isLoading} selected={selected} onSelect={select} />
       </aside>

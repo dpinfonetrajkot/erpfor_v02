@@ -51,7 +51,7 @@ import { CalculatorLauncher } from './calculator';
 import { CommandPalette } from './command-palette';
 import { useLiveUpdates } from './live-updates';
 import { NotificationBell } from './notification-bell';
-import { ACCOUNT_NAV, NAV, SETTINGS_NAV, type NavGroup, type NavItem } from './nav';
+import { ACCOUNT_NAV, canOpen, NAV, SETTINGS_NAV, type NavGroup, type NavItem } from './nav';
 import { useSession } from './session';
 import { UserAvatar } from './user-avatar';
 
@@ -124,7 +124,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useLiveUpdates(user.id);
 
   const groups: NavGroup[] = useMemo(
-    () => NAV.map((g) => ({ ...g, items: g.items.filter((i) => can(i.permission)) })).filter((g) => g.items.length > 0),
+    () => NAV.map((g) => ({ ...g, items: g.items.filter((i) => canOpen(can, i)) })).filter((g) => g.items.length > 0),
     [can],
   );
   const [pins, togglePin] = useStoredList(pinsKey(user.id));

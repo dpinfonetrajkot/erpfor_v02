@@ -238,7 +238,7 @@ function Pack() {
           );
         })}
 
-        <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-3 border-t bg-background/95 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border">
+        <div className="sticky bottom-0 z-10 -mx-3 flex flex-wrap items-center justify-end gap-3 border-t bg-background/95 px-3 py-3 backdrop-blur sm:mx-0 sm:rounded-lg sm:border sm:px-4">
           {problems.length > 0 && <span className="mr-auto text-sm text-destructive">Heats do not add up: {problems.join(', ')}</span>}
           <Button onClick={() => save.mutate()} loading={save.isPending} disabled={!chosen.length || problems.length > 0}>
             Pack {fmtQty(chosen.reduce((s, l) => s + Number(sets[l.lineId]), 0))} set(s)

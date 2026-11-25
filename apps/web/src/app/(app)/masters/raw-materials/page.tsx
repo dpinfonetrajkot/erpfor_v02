@@ -19,6 +19,7 @@ import { DataTable, FilterSelect } from '@/components/app/data-table';
 import { FormGrid, FormSheet, SelectField, SwitchField, TextField } from '@/components/app/form';
 import { FormDialog } from '@/components/app/form-dialog';
 import { PageHeader } from '@/components/app/page-header';
+import { ImportButton } from '@/components/app/import-button';
 import { ACTIVE_FILTER_OPTIONS, ActiveBadge, RowActions } from '@/components/app/row-actions';
 import { RequirePermission } from '@/components/app/no-access';
 import { useSession } from '@/components/app/session';
@@ -26,7 +27,11 @@ import { useSession } from '@/components/app/session';
 export default function RawMaterialsPage() {
   return (
     <RequirePermission permission="raw_materials.view">
-      <PageHeader title="Raw materials" description="Bar stock by grade and size. Stock is shown for the RM store across all heats." />
+      <PageHeader
+        title="Raw materials"
+        description="Bar stock by grade and size. Stock is shown for the RM store across all heats."
+        actions={<ImportButton type="raw_materials" />}
+      />
       <Tabs defaultValue="materials">
         <TabsList className="mb-4">
           <TabsTrigger value="materials">Raw materials</TabsTrigger>

@@ -32,6 +32,7 @@ import { DataTable, FilterSelect } from '@/components/app/data-table';
 import { FormGrid, FormSection, FormSheet, SelectField, SwitchField, TextField, TextareaField } from '@/components/app/form';
 import { FormDialog } from '@/components/app/form-dialog';
 import { PageHeader } from '@/components/app/page-header';
+import { ImportButton } from '@/components/app/import-button';
 import { ACTIVE_FILTER_OPTIONS, ActiveBadge, RowActions } from '@/components/app/row-actions';
 import { RequirePermission } from '@/components/app/no-access';
 import { useSession } from '@/components/app/session';
@@ -39,7 +40,11 @@ import { useSession } from '@/components/app/session';
 export default function ProductsPage() {
   return (
     <RequirePermission permission="products.view">
-      <PageHeader title="Products & BOM" description="Sellable products (e.g. 2&quot; FIG 100), the parts that make one set, and their categories." />
+      <PageHeader
+        title="Products & BOM"
+        description="Sellable products (e.g. 2&quot; FIG 100), the parts that make one set, and their categories."
+        actions={<ImportButton type="products" />}
+      />
       <Tabs defaultValue="products">
         <TabsList className="mb-4">
           <TabsTrigger value="products">Products</TabsTrigger>

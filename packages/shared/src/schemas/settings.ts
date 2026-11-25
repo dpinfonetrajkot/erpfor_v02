@@ -55,3 +55,52 @@ export const documentSeriesSchema = z.object({
   resetPeriod: z.enum(RESET_PERIODS).default('FINANCIAL_YEAR'),
 });
 export type DocumentSeriesInput = z.infer<typeof documentSeriesSchema>;
+
+// ------------------------------------------------------------------ database backups
+
+/** How many days of backups to keep (older ones are deleted after each new backup). */
+export const BACKUP_KEEP_DAYS = [3, 7, 14, 30] as const;
+
+export const backupSettingsSchema = z.object({
+  enabled: z.boolean(),
+  /** Server time, 24-hour "HH:MM". */
+  time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Use a time like 02:00'),
+  keepDays: z.coerce.number().int().min(1, 'At least 1 day').max(90, 'At most 90 days'),
+});
+export type BackupSettings = z.infer<typeof backupSettingsSchema>;
+export const DEFAULT_BACKUP_SETTINGS: BackupSettings = { enabled: true, time: '02:00', keepDays: 7 };
+
+export type BackupKind = 'auto' | 'manual';
+
+export interface BackupFile {
+  name: string;
+  kind: BackupKind;
+  createdAt: string;
+  sizeBytes: number;
+}
+
+/** The result of the last backup attempt (made or failed). */
+export interface BackupRun {
+  at: string;
+  ok: boolean;
+  kind: BackupKind;
+  file?: string;
+  sizeBytes?: number;
+  tables?: number;
+  rows?: number;
+  seconds?: number;
+  message?: string;
+}
+
+export interface BackupOverview {
+  settings: BackupSettings;
+  /** Newest first. */
+  files: BackupFile[];
+  totalBytes: number;
+  lastRun: BackupRun | null;
+  /** When the next automatic backup is due (null when automatic backups are off). In the past = it starts in a few minutes. */
+  nextRunAt: string | null;
+  running: boolean;
+  /** Folder on the server where the backups are kept. */
+  folder: string;
+}

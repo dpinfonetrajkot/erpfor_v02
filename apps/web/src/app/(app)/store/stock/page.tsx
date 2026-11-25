@@ -32,6 +32,7 @@ import { DataTable, FilterSelect } from '@/components/app/data-table';
 import { ComboboxField, FormGrid, SelectField, TextField } from '@/components/app/form';
 import { FormDialog } from '@/components/app/form-dialog';
 import { PageHeader } from '@/components/app/page-header';
+import { ImportButton } from '@/components/app/import-button';
 import { RequirePermission } from '@/components/app/no-access';
 import { useSession } from '@/components/app/session';
 
@@ -60,11 +61,14 @@ function Stock() {
         title="Stock & ledger"
         description="What is in the store, by heat number, and every movement in and out."
         actions={
-          can('stock.create') && (
-            <Button variant="outline" onClick={() => setAdjusting(true)}>
-              <SlidersHorizontal /> Adjust stock
-            </Button>
-          )
+          <>
+            <ImportButton type={['rm_stock', 'fg_stock']} label="Opening stock from Excel" />
+            {can('stock.create') && (
+              <Button variant="outline" onClick={() => setAdjusting(true)}>
+                <SlidersHorizontal /> Adjust stock
+              </Button>
+            )}
+          </>
         }
       />
       {/* Each tab keeps its own filters in the URL; switching tab starts clean. */}

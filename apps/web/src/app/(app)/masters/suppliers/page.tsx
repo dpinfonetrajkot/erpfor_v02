@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/primitives';
 import { DataTable, FilterSelect } from '@/components/app/data-table';
 import { FormGrid, FormSection, FormSheet, SelectField, TextField } from '@/components/app/form';
 import { PageHeader } from '@/components/app/page-header';
+import { ImportButton } from '@/components/app/import-button';
 import { PartyFields } from '@/components/app/party-fields';
 import { ACTIVE_FILTER_OPTIONS, ActiveBadge, RowActions } from '@/components/app/row-actions';
 import { RequirePermission } from '@/components/app/no-access';
@@ -96,11 +97,14 @@ function Suppliers() {
         title="Suppliers & vendors"
         description="Raw material suppliers, job-work vendors and service providers."
         actions={
-          can('suppliers.create') && (
-            <Button onClick={() => setEditing('new')}>
-              <Plus /> New supplier
-            </Button>
-          )
+          <>
+            <ImportButton type="suppliers" />
+            {can('suppliers.create') && (
+              <Button onClick={() => setEditing('new')}>
+                <Plus /> New supplier
+              </Button>
+            )}
+          </>
         }
       />
       <DataTable
@@ -174,6 +178,7 @@ function SupplierSheet({ supplier, onClose }: { supplier: Supplier | null; onClo
       <PartyFields
         form={form}
         codeHint="Auto: SUP-0001, SUP-0002…"
+        duplicateCheck={{ path: '/suppliers', currentId: supplier?.id, label: 'supplier' }}
         extraTop={<SelectField form={form} name="type" label="Type" options={TYPE_OPTIONS} required />}
         extraBottom={
           <FormSection title="Bank (for payments)">
